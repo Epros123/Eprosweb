@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Epros Browser</title>
+<title>Epros Browser v2.0</title>
 <style>
 :root {
   --glass-bg: rgba(255,255,255,0.25);
@@ -11,32 +11,116 @@
   --ruler-color: rgba(0,122,255,0.5);
 }
 html, body { margin:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,system-ui; background:#0f0f0f; }
-#topbar { display:flex; gap:8px; padding:10px; background:rgba(30,30,30,0.75); backdrop-filter:blur(20px); }
+
+/* Topbar including tabs */
+#topbar {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:6px;
+  background:rgba(30,30,30,0.75);
+  backdrop-filter:blur(20px);
+  position:relative;
+  z-index:3;
+}
+
+/* URL and buttons row */
+#urlRow {
+  display:flex;
+  gap:8px;
+}
 #urlInput { flex:1; padding:10px; border-radius:10px; border:none; font-size:16px; }
 button { padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:600; background: rgba(255,255,255,0.1); color:white; }
-#tabs { display:flex; gap:6px; padding:6px; background: rgba(40,40,40,0.7); backdrop-filter: blur(20px);}
-.tab { display:flex; gap:6px; align-items:center; padding:6px 10px; border-radius:10px; background: rgba(255,255,255,0.15); color:white; cursor:pointer; max-width:160px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+/* Tabs row */
+#tabs {
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding:4px 0;
+}
+.tab {
+  display:flex;
+  gap:4px;
+  align-items:center;
+  padding:0 10px;
+  border-radius:10px;
+  background: rgba(255,255,255,0.15);
+  color:white;
+  cursor:pointer;
+  max-width:160px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  height:32px;
+  line-height:32px;
+  flex-shrink:0;
+}
 .tab.active { background: rgba(255,255,255,0.35); }
 .tab span { color:#ff6b6b; cursor:pointer; }
-#content { height:calc(100% - 120px); }
-iframe { width:100%; height:100%; border:none; }
+
+/* Iframe fills rest of screen below topbar */
+#content iframe {
+  position:absolute;
+  top:calc(6px + 50px + 38px); /* topbar padding + url row + tabs height */
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  height:100%;
+  border:none;
+  z-index:1;
+}
+
+/* Ruler */
 #ruler { position:fixed; top:140px; left:40px; width:320px; height:48px; background: var(--ruler-color); backdrop-filter: blur(25px) saturate(180%); border:1px solid var(--glass-border); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.25); display:none; resize:both; overflow:auto; cursor:move; z-index:9999; color:white; font-weight:600; text-align:center; line-height:48px;}
+
+/* Settings */
 #settings { position:fixed; right:20px; top:140px; width:280px; padding:14px; background: rgba(30,30,30,0.85); backdrop-filter: blur(25px); border-radius:16px; color:white; display:none; z-index:9999; }
 #settings label { font-size:14px; display:block; margin-top:10px; }
 #settings input, #settings select { width:100%; margin-top:4px; }
+
+/* Notes panel */
+#notesPanel { position:absolute; top:0; right:0; width:300px; height:100%; background: rgba(20,20,20,0.85); color:white; padding:10px; display:none; flex-direction:column; z-index:9999; }
+#notesPanel textarea { flex:1; width:100%; background: rgba(0,0,0,0.2); color:white; border:none; border-radius:10px; padding:8px; resize:none; font-family:monospace; font-size:14px; margin-bottom:10px; }
+#notesButtons { display:flex; gap:6px; flex-wrap:wrap; }
+#notesButtons button { flex:1; min-width:48px; }
+#aiOutput { background: rgba(0,0,0,0.3); color:#00ffcc; padding:6px; border-radius:8px; font-family:monospace; white-space:pre-wrap; margin-top:6px; max-height:150px; overflow:auto; }
+#notesClose { text-align:right; margin-bottom:6px; }
+#notesClose button { background: rgba(255,255,255,0.1); color:white; border:none; border-radius:6px; padding:2px 6px; cursor:pointer; font-weight:600; }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <input id="urlInput" placeholder="Enter URL or search..." />
-  <button onclick="go()">Go</button>
-  <button id="rulerBtn" onclick="toggleRuler()">Ruler</button>
-  <button onclick="toggleSettings()">Settings</button>
+  <div id="urlRow">
+    <input id="urlInput" placeholder="Enter URL or search..." />
+    <button onclick="go()">Go</button>
+    <button id="rulerBtn" onclick="toggleRuler()">Ruler</button>
+    <button onclick="toggleSettings()">Settings</button>
+    <button onclick="toggleNotes()">Notes</button>
+  </div>
+  <div id="tabs"></div>
 </div>
 
-<div id="tabs"></div>
-<div id="content"></div>
+<div id="content">
+  <iframe id="mainFrame" src=""></iframe>
+</div>
+
+<div id="notesPanel">
+  <div id="notesClose"><button onclick="toggleNotes()">✕ Close</button></div>
+  <textarea id="notesText" placeholder="Write your notes here..."></textarea>
+  <div id="notesButtons">
+    <button onclick="saveNotes()">💾 Save .txt</button>
+    <button onclick="openNotesFile()">📂 Open .txt</button>
+    <button onclick="summarizeNotes()">📝 Summarize</button>
+    <button onclick="simplifyNotes()">🔹 Simplify</button>
+    <button onclick="generateQuestions()">❓ Questions</button>
+    <button onclick="createFlashcards()">🃏 Flashcards</button>
+  </div>
+  <div id="aiOutput"></div>
+</div>
+
 <div id="ruler"></div>
 
 <div id="settings">
@@ -62,11 +146,19 @@ let dragging=false, ox, oy;
 const rulerBtn = document.getElementById("rulerBtn");
 let hintTimeout=null;
 
+// Notes
+const notesPanel = document.getElementById("notesPanel");
+const notesText = document.getElementById("notesText");
+const aiOutput = document.getElementById("aiOutput");
+
 // Load saved tabs
 if(localStorage.getItem("savedTabs")) {
   const saved = JSON.parse(localStorage.getItem("savedTabs"));
   saved.forEach(t => createTab(t.url, t.title));
 }
+
+// Load saved notes
+if(localStorage.getItem("savedNotes")) notesText.value = localStorage.getItem("savedNotes");
 
 function isURL(text){ return text.startsWith("http://") || text.startsWith("https://"); }
 
@@ -113,7 +205,6 @@ function activateTab(id){
   tabs.forEach(t=>{ t.tab.classList.remove("active"); t.iframe.style.display="none"; });
   const t=tabs.find(t=>t.id===id); if(!t) return;
   t.tab.classList.add("active");
-  document.getElementById("content").innerHTML="";
   document.getElementById("content").appendChild(t.iframe);
   t.iframe.style.display="block";
   activeTab=id;
@@ -148,6 +239,72 @@ function toggleSettings(){ const s=document.getElementById("settings"); s.style.
 function setRulerColor(color){ ruler.style.background=color+"88"; }
 function setRulerOpacity(value){ ruler.style.opacity=value; }
 function resetRuler(){ ruler.style.left="40px"; ruler.style.top="140px"; ruler.style.width="320px"; ruler.style.height="48px"; ruler.style.opacity="0.5"; ruler.style.background="rgba(0,122,255,0.5)"; }
+
+// Notes Panel
+function toggleNotes(){ notesPanel.style.display = notesPanel.style.display==="none"?"flex":"none"; }
+notesText.addEventListener("input",()=>{ localStorage.setItem("savedNotes", notesText.value); });
+
+// Save notes as .txt
+function saveNotes(){
+  const blob = new Blob([notesText.value], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "notes.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Open .txt file
+function openNotesFile(){
+  const input = document.createElement("input");
+  input.type="file";
+  input.accept=".txt";
+  input.onchange = e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      notesText.value = reader.result;
+      localStorage.setItem("savedNotes", notesText.value);
+      aiOutput.textContent = "";
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Offline AI-style Assistant functions
+function summarizeNotes(){
+  aiOutput.textContent = "";
+  const lines = notesText.value.split("\n").filter(l=>l.trim());
+  if(!lines.length) return alert("No notes to summarize!");
+  const summary = lines.map(l=>`• ${l.slice(0,60)}${l.length>60?"…":""}`).join("\n");
+  aiOutput.textContent = "[Summary]\n" + summary;
+}
+
+function simplifyNotes(){
+  aiOutput.textContent = "";
+  const text = notesText.value;
+  if(!text.trim()) return alert("No notes to simplify!");
+  const simplified = text.replace(/[,.;]/g,"").toLowerCase();
+  aiOutput.textContent = "[Simplified]\n" + simplified;
+}
+
+function generateQuestions(){
+  aiOutput.textContent = "";
+  const lines = notesText.value.split("\n").filter(l=>l.trim());
+  if(!lines.length) return alert("No notes to generate questions from!");
+  const questions = lines.map(l=>`Q: What is "${l.slice(0,30)}…"?`).join("\n");
+  aiOutput.textContent = "[Questions]\n" + questions;
+}
+
+function createFlashcards(){
+  aiOutput.textContent = "";
+  const lines = notesText.value.split("\n").filter(l=>l.trim());
+  if(!lines.length) return alert("No notes to create flashcards from!");
+  const flashcards = lines.map(l=>`Front: ${l.slice(0,30)}… | Back: …`).join("\n");
+  aiOutput.textContent = "[Flashcards]\n" + flashcards;
+}
 </script>
 
 </body>
