@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Epros Browser v2.0</title>
+<title>Epros Browser v2.1</title>
 <style>
 :root {
   --glass-bg: rgba(255,255,255,0.25);
@@ -96,6 +96,8 @@ button { padding:10px 14px; border-radius:10px; border:none; cursor:pointer; fon
   <div id="urlRow">
     <input id="urlInput" placeholder="Enter URL or search..." />
     <button onclick="go()">Go</button>
+    <button onclick="goBack()">◀ Back</button>
+    <button onclick="refreshTab()">🔄 Refresh</button>
     <button id="rulerBtn" onclick="toggleRuler()">Ruler</button>
     <button onclick="toggleSettings()">Settings</button>
     <button onclick="toggleNotes()">Notes</button>
@@ -219,6 +221,17 @@ function closeTab(id){
 function saveTabs(){
   const toSave=tabs.map(t=>({url:t.url,title:t.tab.firstChild.textContent}));
   localStorage.setItem("savedTabs",JSON.stringify(toSave));
+}
+
+// Back and Refresh
+function goBack(){
+  const t = tabs.find(t => t.id === activeTab);
+  if(t && t.iframe.contentWindow.history.length > 1) t.iframe.contentWindow.history.back();
+}
+
+function refreshTab(){
+  const t = tabs.find(t => t.id === activeTab);
+  if(t) t.iframe.src = t.iframe.src;
 }
 
 // Ruler
